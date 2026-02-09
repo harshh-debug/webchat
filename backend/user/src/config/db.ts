@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const connectDb = async () => {
-	const url = process.env.MONGO_URI;
+	const url = process.env.MONGO_URI; 
 	if (!url) {
 		throw new Error("DB url not defined");
 	}
@@ -9,7 +9,7 @@ const connectDb = async () => {
 		await mongoose.connect(url, {
 			dbName: "chat-app",
 		});
-		console.log("Connected to db");
+		console.log("Connected to Mongodb");
 	} catch (error) {
 		console.error("Failed to connected to db", error);
 		process.exit(1);

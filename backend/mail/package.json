@@ -1,0 +1,27 @@
+{
+	"name": "mail",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"build": "tsc -b",
+		"start": "node ./dist/index.js",
+		"dev": "npm run build && npm run start"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"type": "module",
+	"dependencies": {
+		"amqplib": "^0.10.9",
+		"dotenv": "^17.2.4",
+		"express": "^5.2.1",
+		"nodemailer": "^8.0.1"
+	},
+	"devDependencies": {
+		"@types/amqplib": "^0.10.8",
+		"@types/dotenv": "^6.1.1",
+		"@types/express": "^5.0.6",
+		"@types/nodemailer": "^7.0.9"
+	}
+}
