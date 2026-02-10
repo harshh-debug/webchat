@@ -15,5 +15,7 @@ const userSchema:Schema<IUser>=new Schema({
         required:true,
         unique:true
     }
+},{
+    timestamps:true
 })
 export const userModel =mongoose.model<IUser>("User",userSchema)
