@@ -4,6 +4,7 @@ import connectDb from "./config/db.js";
 import { createClient } from "redis";
 import userRouter from "./routes/userRouter.js";
 import { connectRabbitMQ } from "./config/rabbitmq.js";
+import cors from "cors"
 dotenv.config();
 if (!process.env.PORT || !process.env.REDIS_URL || !process.env.MONGO_URI) {
 	throw new Error("Environment variables not defined");
@@ -26,6 +27,7 @@ redisClient
 
 const app = express();
 app.use(express.json())
+app.use(cors())
 
 app.use("/api/v1",userRouter)
 
