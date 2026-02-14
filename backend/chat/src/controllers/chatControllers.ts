@@ -101,73 +101,180 @@ export const getAllChat = async (req: AuthenticatedRequest, res: Response) => {
 	}
 };
 
-
-export const sendMessage= async(req:AuthenticatedRequest,res:Response)=>{
+export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
 	try {
-		const senderId= req.user?._id
-		const{chatId,text}=req.body
-		const imageFile=req.file
-		if(!senderId){
+		const senderId = req.user?._id;
+		const { chatId, text } = req.body;
+		const imageFile = req.file;
+		if (!senderId) {
 			return res.status(401).json({
-				message:"Unauthorized"
-			})
+				message: "Unauthorized",
+			});
 		}
-		if(!chatId){
+		if (!chatId) {
 			return res.status(401).json({
-				message:"ChatId required"
-			})
+				message: "ChatId required",
+			});
 		}
-		if(!text && !imageFile){
+		if (!text && !imageFile) {
 			return res.status(400).json({
-				message:"Either text or image is required"
-			})
-
+				message: "Either text or image is required",
+			});
 		}
-		const chat = await chatModel.findById(chatId)
-		if(!chat){
+		const chat = await chatModel.findById(chatId);
+		if (!chat) {
 			return res.status(404).json({
-				message:"Chat not found"
-			})
+				message: "Chat not found",
+			});
 		}
 
-		const isUserInChat=chat.users.some(
-			(userId)=>userId.toString()===senderId.toString()
-		)
-		if(!isUserInChat){
+		const isUserInChat = chat.users.some(
+			(userId) => userId.toString() === senderId.toString(),
+		);
+		if (!isUserInChat) {
 			return res.status(403).json({
-				message:"You are not a participant of this chat"
-			})
+				message: "You are not a participant of this chat",
+			});
 		}
-		const otherUserId=chat.users.find(
-			(userId)=>userId.toString()!==senderId.toString()
-		)
-		if(!otherUserId){
+		const otherUserId = chat.users.find(
+			(userId) => userId.toString() !== senderId.toString(),
+		);
+		if (!otherUserId) {
 			return res.status(401).json({
-				message:"No other user"
-			})
+				message: "No other user",
+			});
 		}
 
 		//@todo: socket setup
 
-		let messageData:any={
-			chatId:chatId,
-			senderId:senderId,
-			seen:false,
-			seenAt:undefined
+		let messageData: any = {
+			chatId: chatId,
+			sender: senderId,
+			seen: false,
+			seenAt: undefined,
+		};
+		if (imageFile) {
+			messageData.image = {
+				url: imageFile.path,
+				publicId: imageFile.filename,
+			};
+			messageData.messageType = "image";
+			messageData.text = text || "";
+		} else {
+			messageData.text = text;
+			messageData.messageType = "text";
 		}
-		if(imageFile){
-			messageData.image={
-				url:imageFile.path,
-				publicId:imageFile.filename
 
-			}
-			messageData.messageType="image"
-			messageData.text=text || ""
-		}else{
-			
-		}
-	} catch (error) {
-		
+		const message = new messageModel(messageData);
+		const savedMessage = await message.save();
+		const latestMessageText = imageFile ? "image" : text;
+
+		await chatModel.findByIdAndUpdate(
+			chatId,
+			{
+				latestMessage: {
+					text: latestMessageText,
+					sender: senderId,
+				},
+				updatedAt: new Date(),
+			},
+			{
+				new: true,
+			},
+		);
+
+		//@todo: emit to socket
+
+		return res.status(201).json({
+			message: savedMessage,
+			sender: senderId,
+		});
+	} catch (error: any) {
+		console.log("Error in send-message", error);
+		return res.status(500).json({
+			message: error.message,
+		});
 	}
+};
 
-}
+export const getMessagesByChat = async (
+	req: AuthenticatedRequest,
+	res: Response,
+) => {
+	try {
+		const userId = req.user?._id;
+		const { chatId } = req.params;
+		if (!chatId) {
+			return res.status(401).json({
+				message: "ChatId required",
+			});
+		}
+		if (!userId) {
+			return res.status(401).json({
+				message: "Unauthorized ",
+			});
+		}
+		const chat = await chatModel.findById(chatId);
+		if (!chat) {
+			return res.status(401).json({
+				message: "Chat not found ",
+			});
+		}
+		const isUserInChat = chat.users.some(
+			(uId) => uId.toString() === userId.toString(),
+		);
+		if (!isUserInChat) {
+			return res.status(403).json({
+				message: "You are not a participant of this chat",
+			});
+		}
+		// const messageToMarkSeen = await messageModel.find({
+		// 	chatId: chatId,
+		// 	sender: { $ne: userId },
+		// 	seen: false,
+		// });
+		await messageModel.updateMany(
+			{
+				chatId: chatId,
+				sender: { $ne: userId },
+				seen: false,
+			},
+			{
+				seen: true,
+				seenAt: new Date(),
+			},
+		);
+		const messages = await messageModel.find({ chatId }).sort({
+			createdAt: 1,
+		});
+		const otherUserId = chat.users.find((id) => id!== userId);
+		if(!otherUserId){
+			return res.status(400).json({
+				message:"No other user"
+			})
+		}
+		try {
+			const { data } = await axios.get(
+				`${process.env.USER_SERVICE}/api/v1/user/${otherUserId}`,
+			);
+
+			//@todo:socket 
+			res.json({
+				messages,
+				user:data
+			})
+			
+		} catch (error) {
+			console.log(error)
+			res.json({
+				messages,
+				user:{_id:otherUserId,name:"Unknown user"}
+			})
+		}
+	} catch (error: any) {
+		console.log("Error in get-messages-by-chat", error);
+		return res.status(500).json({
+			message: error.message,
+		});
+	}
+};

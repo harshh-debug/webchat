@@ -1,7 +1,7 @@
 import dotenv  from 'dotenv';
 import express from "express"
 import connectDb from './config/db.js';
-import chatRouter from './routes/chat.js';
+import chatRouter from './routes/chatRouter.js';
 dotenv.config()
 connectDb()
 const app= express()
