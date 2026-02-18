@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { user_service } from "@/context/AppContext";
 import axios from "axios";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -29,7 +30,7 @@ const Page = () => {
 		setLoading(true);
 		try {
 			const { data } = await axios.post<LoginResponse>(
-				`http://localhost:5000/api/v1/login`,
+				`${user_service}/api/v1/login`,
 				{
 					email,
 				},
