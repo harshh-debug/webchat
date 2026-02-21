@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
 	title: "WebChat",
@@ -16,6 +17,7 @@ export default function RootLayout({
 		<html lang="en">
 			<body>
 				<AppProvider>{children}</AppProvider>
+				<Toaster position="top-center" richColors />
 			</body>
 		</html>
 	);

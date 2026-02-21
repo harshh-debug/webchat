@@ -1,4 +1,5 @@
 "use client";
+import Loading from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -10,11 +11,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { user_service } from "@/context/AppContext";
+import { useAppData, user_service } from "@/context/AppContext";
 import axios from "axios";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 interface LoginResponse {
 	message: string;
 }
@@ -23,6 +25,7 @@ const Page = () => {
 	const [email, setEmail] = useState<string>("");
 	const [loading, setLoading] = useState<boolean>(false);
 	const router = useRouter();
+	const { isAuth, loading: userLoading } = useAppData();
 	const handleSubmit = async (
 		e: React.FormEvent<HTMLFormElement>,
 	): Promise<void> => {
@@ -35,14 +38,24 @@ const Page = () => {
 					email,
 				},
 			);
-			alert(data.message);
+
+			toast.success(data.message);
 			router.push(`/verify?email=${email}`);
 		} catch (error: any) {
-			alert(error.response?.data.message || "Something went wrong");
+			toast.error(error.response?.data.message || "Something went wrong");
 		} finally {
 			setLoading(false);
 		}
 	};
+	useEffect(() => {
+		if (!userLoading && isAuth) {
+			router.replace("/chat");
+		}
+	}, [isAuth, userLoading, router]);
+
+	if (userLoading) {
+		return <Loading />;
+	}
 	return (
 		<div className="min-h-screen flex justify-center items-center px-4">
 			<Card className="w-full max-w-sm">
@@ -73,9 +86,7 @@ const Page = () => {
 						</div>
 						{loading ? (
 							<div className="flex items-center justify-center gap-2">
-								<Loader2>
-									Sending otp to your mail...
-								</Loader2>
+								<Loader2>Sending otp to your mail...</Loader2>
 							</div>
 						) : (
 							<Button type="submit" className="w-full" disabled={loading}>
