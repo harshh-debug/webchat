@@ -4,6 +4,7 @@ import { publishToQueue } from "../config/rabbitmq.js";
 import { userModel } from "../model/User.js";
 import { generateToken } from "../config/generateToken.js";
 import type { AuthenticatedRequest } from "../middleware/authMiddleware.js";
+import { OAuth2Client } from "google-auth-library";
 
 export const loginUser = async (req: Request, res: Response) => {
 	try {
@@ -45,7 +46,98 @@ export const loginUser = async (req: Request, res: Response) => {
 		});
 	}
 };
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// export const loginOauthUser = async (req: Request, res: Response) => {
+// 	try {
+// 		const { name, email, provider } = req.body;
+// 		let user = await userModel.findOne({ email });
+// 		if (!user) {
+// 			user = await userModel.create({
+// 				name,
+// 				email,
+// 				provider,
+// 			});
+// 		}
+// 		const token = generateToken(user);
+// 		return res.status(200).json({
+// 			message: "User verified",
+// 			user,
+// 			token,
+// 		});
+// 	} catch (error:any) {
+// 		console.log("Error in loginOauthUser", error);
+// 		return res.status(500).json({
+// 			message: error.message,
+// 		});
+// 	}
+// };
+export const loginOauthUser = async (req: Request, res: Response) => {
+	try {
+		const { idToken } = req.body;
 
+		if (!idToken) {
+			return res.status(400).json({ message: "No idToken provided" });
+		}
+
+		// 🔐 Verify token with Google
+		const ticket = await client.verifyIdToken({
+			idToken,
+			audience: process.env.GOOGLE_CLIENT_ID!,
+		});
+
+		const payload = ticket.getPayload();
+
+		if (!payload) {
+			return res.status(401).json({ message: "Invalid Google token" });
+		}
+
+		if (!payload.email || !payload.email_verified) {
+			return res.status(401).json({
+				message: "Google email not verified",
+			});
+		}
+
+		const email = payload.email;
+		const name = payload.name;
+		const sub = payload.sub;
+
+		if (!email || !name || !sub) {
+			return res.status(401).json({
+				message: "Incomplete Google profile",
+			});
+		}
+		// sub = unique Google user ID
+
+		let user = await userModel.findOne({ email });
+
+		if (!user) {
+			user = await userModel.create({
+				name,
+				email,
+				provider: "google",
+				providerId: sub,
+			});
+		}
+
+		// Generate your internal JWT
+		const token = generateToken(user);
+
+		return res.status(200).json({
+			message: "User verified securely",
+			user: {
+				_id: user._id,
+				name: user.name,
+				email: user.email,
+			},
+			token,
+		});
+	} catch (error) {
+		console.error("Secure OAuth error:", error);
+		return res.status(401).json({
+			message: "Invalid or expired Google token",
+		});
+	}
+};
 export const verifyUser = async (req: Request, res: Response) => {
 	try {
 		const { email, otp: enteredOtp } = req.body;

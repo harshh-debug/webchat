@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { Toaster } from "@/components/ui/sonner";
+import OAuthTokenSync from "@/components/OAuthTokenSync";
+import { SessionProvider } from "next-auth/react";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
 	title: "WebChat",
@@ -16,8 +19,14 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body>
-				<AppProvider>{children}</AppProvider>
-				<Toaster position="top-center" richColors />
+				{/* <SessionProvider>
+					<AppProvider>
+						<OAuthTokenSync />
+						{children}
+					</AppProvider>
+					<Toaster position="top-center" richColors />
+				</SessionProvider> */}
+				<Providers>{children}</Providers>
 			</body>
 		</html>
 	);

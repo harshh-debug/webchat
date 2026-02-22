@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useAppData, user_service } from "@/context/AppContext";
 import axios from "axios";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -46,6 +47,12 @@ const Page = () => {
 		} finally {
 			setLoading(false);
 		}
+	};
+
+	const handleGoogleLogin = async () => {
+		await signIn("google", {
+			callbackUrl: "/chat",
+		});
 	};
 	useEffect(() => {
 		if (!userLoading && isAuth) {
@@ -98,7 +105,7 @@ const Page = () => {
 				</CardContent>
 
 				<CardFooter className="flex-col gap-0.5">
-					<Button variant="outline" className="w-full">
+					<Button variant="outline" className="w-full" onClick={handleGoogleLogin}>
 						Login with Google
 					</Button>
 				</CardFooter>
