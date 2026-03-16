@@ -3,6 +3,33 @@ import type { AuthenticatedRequest } from "../middlewares/authMiddleware.js";
 import { chatModel } from "../models/chatModel.js";
 import { messageModel } from "../models/messageModel.js";
 import axios from "axios";
+import cloudinary from "../config/cloudinary.js";
+
+const uploadImageBuffer = async (buffer: Buffer) => {
+	return new Promise<{ secureUrl: string; publicId: string }>(
+		(resolve, reject) => {
+			const uploadStream = cloudinary.uploader.upload_stream(
+				{
+					folder: "webchat/messages",
+					resource_type: "image",
+				},
+				(error, result) => {
+					if (error || !result) {
+						reject(error || new Error("Cloudinary upload failed"));
+						return;
+					}
+
+					resolve({
+						secureUrl: result.secure_url,
+						publicId: result.public_id,
+					});
+				},
+			);
+
+			uploadStream.end(buffer);
+		},
+	);
+};
 
 export const createNewChat = async (
 	req: AuthenticatedRequest,
@@ -154,9 +181,11 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
 			seenAt: undefined,
 		};
 		if (imageFile) {
+			const uploadedImage = await uploadImageBuffer(imageFile.buffer);
+
 			messageData.image = {
-				url: imageFile.path,
-				publicId: imageFile.filename,
+				url: uploadedImage.secureUrl,
+				publicId: uploadedImage.publicId,
 			};
 			messageData.messageType = "image";
 			messageData.text = text || "";
@@ -247,29 +276,28 @@ export const getMessagesByChat = async (
 		const messages = await messageModel.find({ chatId }).sort({
 			createdAt: 1,
 		});
-		const otherUserId = chat.users.find((id) => id!== userId);
-		if(!otherUserId){
+		const otherUserId = chat.users.find((id) => id !== userId);
+		if (!otherUserId) {
 			return res.status(400).json({
-				message:"No other user"
-			})
+				message: "No other user",
+			});
 		}
 		try {
 			const { data } = await axios.get(
 				`${process.env.USER_SERVICE}/api/v1/user/${otherUserId}`,
 			);
 
-			//@todo:socket 
+			//@todo:socket
 			res.json({
 				messages,
-				user:data
-			})
-			
+				user: data,
+			});
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 			res.json({
 				messages,
-				user:{_id:otherUserId,name:"Unknown user"}
-			})
+				user: { _id: otherUserId, name: "Unknown user" },
+			});
 		}
 	} catch (error: any) {
 		console.log("Error in get-messages-by-chat", error);

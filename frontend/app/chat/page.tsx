@@ -48,6 +48,21 @@ export interface Message {
   createdAt: string;
 }
 
+export interface createNewChatApiResponse{
+  message:string;
+  chatId?:string
+}
+export interface GetSelectedUserMessagesApiResponse {
+  messages: Message[];
+  user: User;
+}
+
+export interface SendMessageApiResponse {
+  message: Message;
+  sender: string;
+}
+
+
 const ChatApp = () => {
   const {
     loading,
@@ -84,8 +99,8 @@ const ChatApp = () => {
   async function fetchChat() {
     const token = Cookies.get("token");
     try {
-      const { data } = await axios.get(
-        `${chat_service}/api/v1/message/${selectedUser}`,
+      const { data } = await axios.get<GetSelectedUserMessagesApiResponse>(
+        `${chat_service}/api/v1/messages/${selectedUser}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -164,7 +179,7 @@ const ChatApp = () => {
   async function createChat(u: User) {
     try {
       const token = Cookies.get("token");
-      const { data } = await axios.post(
+      const { data } = await axios.post<createNewChatApiResponse>(
         `${chat_service}/api/v1/chat/new`,
         {
           userId: loggedInUser?._id,
@@ -176,12 +191,15 @@ const ChatApp = () => {
           },
         }
       );
-
+      if(!data.chatId){
+        throw new Error("chatId is missing");
+      }
       setSelectedUser(data.chatId);
       setShowAllUser(false);
       await fetchChats();
     } catch (error) {
       // ✅ sonner toast
+      console.log("Error in creating new chat: "+error)
       toast.error("Failed to start chat");
     }
   }
@@ -216,7 +234,7 @@ const ChatApp = () => {
         formData.append("image", imageFile);
       }
 
-      const { data } = await axios.post(
+      const { data } = await axios.post<SendMessageApiResponse>(
         `${chat_service}/api/v1/message`,
         formData,
         {

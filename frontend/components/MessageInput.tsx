@@ -67,21 +67,11 @@ const MessageInput = ({
       )}
 
       <div className="flex items-center gap-2">
-        {/* ✅ File attach — Tooltip wraps the label so icon-only is accessible */}
+        {/* ✅ File attach — styled label triggers hidden input directly */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <label className="cursor-pointer">
-              {/* ✅ shadcn Button as visual trigger (asChild pattern via label) */}
-              <Button
-                type="button"
-                variant="secondary"
-                size="icon"
-                className="bg-gray-700 hover:bg-gray-600 text-gray-300 pointer-events-none"
-                tabIndex={-1} // label handles focus/click
-                aria-hidden
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
+            <label className="cursor-pointer flex items-center justify-center w-9 h-9 rounded-md bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors">
+              <Paperclip className="w-4 h-4" />
               <input
                 type="file"
                 accept="image/*"
