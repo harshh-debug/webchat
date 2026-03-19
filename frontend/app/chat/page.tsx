@@ -4,7 +4,7 @@ import Loading from "@/components/Loading";
 import { chat_service, useAppData, User } from "@/context/AppContext";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { toast, Toaster } from "sonner"; // ✅ Replaced react-hot-toast with sonner
+import { toast, Toaster } from "sonner";
 import Cookies from "js-cookie";
 import axios from "axios";
 import ChatHeader from "@/components/ChatHeader";
@@ -12,26 +12,16 @@ import ChatMessages from "@/components/ChatMessages";
 import MessageInput from "@/components/MessageInput";
 import { SocketData } from "@/context/SocketContext";
 
-// ✅ shadcn/ui component imports
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 export interface Message {
   _id: string;
@@ -48,10 +38,11 @@ export interface Message {
   createdAt: string;
 }
 
-export interface createNewChatApiResponse{
-  message:string;
-  chatId?:string
+export interface createNewChatApiResponse {
+  message: string;
+  chatId?: string;
 }
+
 export interface GetSelectedUserMessagesApiResponse {
   messages: Message[];
   user: User;
@@ -61,7 +52,6 @@ export interface SendMessageApiResponse {
   message: Message;
   sender: string;
 }
-
 
 const ChatApp = () => {
   const {
@@ -79,7 +69,7 @@ const ChatApp = () => {
 
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false); // ✅ fixed typo: siderbarOpen → sidebarOpen
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [showAllUser, setShowAllUser] = useState(false);
@@ -101,19 +91,13 @@ const ChatApp = () => {
     try {
       const { data } = await axios.get<GetSelectedUserMessagesApiResponse>(
         `${chat_service}/api/v1/messages/${selectedUser}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setMessages(data.messages);
       setUser(data.user);
       await fetchChats();
     } catch (error) {
       console.log(error);
-      // ✅ sonner toast API (same call signature, drop-in replacement)
       toast.error("Failed to load messages");
     }
   }
@@ -125,15 +109,10 @@ const ChatApp = () => {
   ) => {
     setChats((prev) => {
       if (!prev) return null;
-
       const updatedChats = [...prev];
-      const chatIndex = updatedChats.findIndex(
-        (chat) => chat.chat._id === chatId
-      );
-
+      const chatIndex = updatedChats.findIndex((chat) => chat.chat._id === chatId);
       if (chatIndex !== -1) {
         const [moveChat] = updatedChats.splice(chatIndex, 1);
-
         const updatedChat = {
           ...moveChat,
           chat: {
@@ -149,10 +128,8 @@ const ChatApp = () => {
                 : moveChat.chat.unseenCount || 0,
           },
         };
-
         updatedChats.unshift(updatedChat);
       }
-
       return updatedChats;
     });
   };
@@ -160,16 +137,9 @@ const ChatApp = () => {
   const resetUnseenCount = (chatId: string) => {
     setChats((prev) => {
       if (!prev) return null;
-
       return prev.map((chat) => {
         if (chat.chat._id === chatId) {
-          return {
-            ...chat,
-            chat: {
-              ...chat.chat,
-              unseenCount: 0,
-            },
-          };
+          return { ...chat, chat: { ...chat.chat, unseenCount: 0 } };
         }
         return chat;
       });
@@ -181,32 +151,21 @@ const ChatApp = () => {
       const token = Cookies.get("token");
       const { data } = await axios.post<createNewChatApiResponse>(
         `${chat_service}/api/v1/chat/new`,
-        {
-          userId: loggedInUser?._id,
-          otherUserId: u._id,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { userId: loggedInUser?._id, otherUserId: u._id },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      if(!data.chatId){
-        throw new Error("chatId is missing");
-      }
+      if (!data.chatId) throw new Error("chatId is missing");
       setSelectedUser(data.chatId);
       setShowAllUser(false);
       await fetchChats();
     } catch (error) {
-      // ✅ sonner toast
-      console.log("Error in creating new chat: "+error)
+      console.log("Error in creating new chat: " + error);
       toast.error("Failed to start chat");
     }
   }
 
   const handleMessageSend = async (e: any, imageFile?: File | null) => {
     e.preventDefault();
-
     if (!message.trim() && !imageFile) return;
     if (!selectedUser) return;
 
@@ -215,24 +174,14 @@ const ChatApp = () => {
       setTypingTimeOut(null);
     }
 
-    socket?.emit("stopTyping", {
-      chatId: selectedUser,
-      userId: loggedInUser?._id,
-    });
+    socket?.emit("stopTyping", { chatId: selectedUser, userId: loggedInUser?._id });
 
     const token = Cookies.get("token");
-
     try {
       const formData = new FormData();
       formData.append("chatId", selectedUser);
-
-      if (message.trim()) {
-        formData.append("text", message);
-      }
-
-      if (imageFile) {
-        formData.append("image", imageFile);
-      }
+      if (message.trim()) formData.append("text", message);
+      if (imageFile) formData.append("image", imageFile);
 
       const { data } = await axios.post<SendMessageApiResponse>(
         `${chat_service}/api/v1/message`,
@@ -247,55 +196,32 @@ const ChatApp = () => {
 
       setMessages((prev) => {
         const currentMessages = prev || [];
-        const messageExists = currentMessages.some(
-          (msg) => msg._id === data.message._id
-        );
-
-        if (!messageExists) {
-          return [...currentMessages, data.message];
-        }
+        const messageExists = currentMessages.some((msg) => msg._id === data.message._id);
+        if (!messageExists) return [...currentMessages, data.message];
         return currentMessages;
       });
 
       setMessage("");
 
       const displayText = imageFile ? "📷 image" : message;
-
-      moveChatToTop(
-        selectedUser!,
-        {
-          text: displayText,
-          sender: data.sender,
-        },
-        false
-      );
+      moveChatToTop(selectedUser!, { text: displayText, sender: data.sender }, false);
     } catch (error: any) {
-      // ✅ sonner toast
       toast.error(error.response?.data?.message ?? "Failed to send message");
     }
   };
 
   const handleTyping = (value: string) => {
     setMessage(value);
-
     if (!selectedUser || !socket) return;
 
     if (value.trim()) {
-      socket.emit("typing", {
-        chatId: selectedUser,
-        userId: loggedInUser?._id,
-      });
+      socket.emit("typing", { chatId: selectedUser, userId: loggedInUser?._id });
     }
 
-    if (typingTimeOut) {
-      clearTimeout(typingTimeOut);
-    }
+    if (typingTimeOut) clearTimeout(typingTimeOut);
 
     const timeout = setTimeout(() => {
-      socket.emit("stopTyping", {
-        chatId: selectedUser,
-        userId: loggedInUser?._id,
-      });
+      socket.emit("stopTyping", { chatId: selectedUser, userId: loggedInUser?._id });
     }, 2000);
 
     setTypingTimeOut(timeout);
@@ -303,21 +229,13 @@ const ChatApp = () => {
 
   useEffect(() => {
     socket?.on("newMessage", (message) => {
-      console.log("Received new message:", message);
-
       if (selectedUser === message.chatId) {
         setMessages((prev) => {
           const currentMessages = prev || [];
-          const messageExists = currentMessages.some(
-            (msg) => msg._id === message._id
-          );
-
-          if (!messageExists) {
-            return [...currentMessages, message];
-          }
+          const messageExists = currentMessages.some((msg) => msg._id === message._id);
+          if (!messageExists) return [...currentMessages, message];
           return currentMessages;
         });
-
         moveChatToTop(message.chatId, message, false);
       } else {
         moveChatToTop(message.chatId, message, true);
@@ -325,8 +243,6 @@ const ChatApp = () => {
     });
 
     socket?.on("messagesSeen", (data) => {
-      console.log("Message seen by:", data);
-
       if (selectedUser === data.chatId) {
         setMessages((prev) => {
           if (!prev) return null;
@@ -337,10 +253,7 @@ const ChatApp = () => {
               data.messageIds.includes(msg._id)
             ) {
               return { ...msg, seen: true, seenAt: new Date().toString() };
-            } else if (
-              msg.sender === loggedInUser?._id &&
-              !data.messageIds
-            ) {
+            } else if (msg.sender === loggedInUser?._id && !data.messageIds) {
               return { ...msg, seen: true, seenAt: new Date().toString() };
             }
             return msg;
@@ -375,7 +288,6 @@ const ChatApp = () => {
       setIsTyping(false);
       resetUnseenCount(selectedUser);
       socket?.emit("joinChat", selectedUser);
-
       return () => {
         socket?.emit("leaveChat", selectedUser);
         setMessages(null);
@@ -385,39 +297,24 @@ const ChatApp = () => {
 
   useEffect(() => {
     return () => {
-      if (typingTimeOut) {
-        clearTimeout(typingTimeOut);
-      }
+      if (typingTimeOut) clearTimeout(typingTimeOut);
     };
   }, [typingTimeOut]);
 
   if (loading) return <Loading />;
 
   return (
-    // ✅ Wrap the whole app with TooltipProvider (required by shadcn Tooltip)
     <TooltipProvider>
-      {/* ✅ Sonner Toaster – replaces react-hot-toast's <Toaster />
-          Place once at the root; customize position/theme as needed */}
-      <Toaster
-        position="top-right"
-        richColors          // enables success/error/warning color variants
-        closeButton         // adds a dismiss button to each toast
-        theme="dark"        // matches the dark bg-gray-900 layout
-      />
+      <Toaster position="top-right" richColors closeButton theme="system" />
 
-      <div className="min-h-screen flex bg-gray-900 text-white relative overflow-hidden">
+      <div className="h-screen flex overflow-hidden bg-zinc-50 dark:bg-[#0d0f13] text-zinc-900 dark:text-zinc-100">
 
-        {/* ─── Mobile sidebar: shadcn Sheet ─────────────────────────────────
-            On desktop the ChatSidebar renders inline (hidden Sheet trigger).
-            On mobile the hamburger in ChatHeader opens the Sheet.           */}
+        {/* Mobile sidebar sheet */}
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          {/* Trigger is controlled externally (ChatHeader sets setSidebarOpen) */}
           <SheetContent
             side="left"
-            className="p-0 w-72 bg-gray-900 border-r border-white/10"
+            className="p-0 w-[300px] bg-white dark:bg-[#111318] border-r border-zinc-200 dark:border-white/[0.06]"
           >
-            {/* ✅ SheetTitle required for accessibility (screen readers).
-                Visually hidden since the sidebar has its own visible heading. */}
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation Sidebar</SheetTitle>
             </SheetHeader>
@@ -438,8 +335,8 @@ const ChatApp = () => {
           </SheetContent>
         </Sheet>
 
-        {/* ─── Desktop sidebar (always visible) ──────────────────────────── */}
-        <div className="hidden md:flex">
+        {/* Desktop sidebar */}
+        <div className="hidden sm:flex shrink-0">
           <ChatSidebar
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
@@ -456,9 +353,12 @@ const ChatApp = () => {
           />
         </div>
 
-        {/* ─── Main chat panel ────────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col justify-between p-4 backdrop-blur-xl bg-white/5 border border-white/10">
-
+        {/* Main chat panel */}
+        <main className={cn(
+          "flex-1 flex flex-col min-w-0 overflow-hidden",
+          "bg-white dark:bg-[#16181d]",
+          "border-l border-zinc-200 dark:border-white/[0.06]"
+        )}>
           {/* Header */}
           <ChatHeader
             user={user}
@@ -467,98 +367,49 @@ const ChatApp = () => {
             onlineUsers={onlineUsers}
           />
 
-          <Separator className="bg-white/10 my-2" /> {/* ✅ shadcn Separator */}
-
-          {/* ✅ shadcn ScrollArea wraps the messages list for custom scrollbar */}
-          <ScrollArea className="flex-1 pr-2">
-            {messages === null ? (
-              /* ✅ shadcn Skeleton loading placeholders */
-              <div className="space-y-3 py-4">
-                {[...Array(5)].map((_, i) => (
+          {/* Messages area */}
+          {messages === null && selectedUser ? (
+            /* Loading skeleton */
+            <ScrollArea className="flex-1 px-4 py-3">
+              <div className="space-y-4">
+                {[...Array(6)].map((_, i) => (
                   <div
                     key={i}
-                    className={`flex ${i % 2 === 0 ? "justify-start" : "justify-end"}`}
+                    className={cn(
+                      "flex items-end gap-2",
+                      i % 2 === 0 ? "justify-start" : "justify-end"
+                    )}
                   >
-                    <div className="flex items-end gap-2">
-                      {i % 2 === 0 && (
-                        <Skeleton className="h-8 w-8 rounded-full bg-white/10" />
-                      )}
-                      <Skeleton
-                        className="h-10 rounded-2xl bg-white/10"
-                        style={{ width: `${120 + (i * 30) % 100}px` }}
-                      />
-                    </div>
+                    {i % 2 === 0 && (
+                      <Skeleton className="w-7 h-7 rounded-full shrink-0 bg-zinc-200 dark:bg-white/[0.06]" />
+                    )}
+                    <Skeleton
+                      className="h-9 rounded-2xl bg-zinc-200 dark:bg-white/[0.06]"
+                      style={{ width: `${100 + (i * 47) % 120}px` }}
+                    />
                   </div>
                 ))}
               </div>
-            ) : (
-              <ChatMessages
-                selectedUser={selectedUser}
-                messages={messages}
-                loggedInUser={loggedInUser}
-              />
-            )}
-          </ScrollArea>
+            </ScrollArea>
+          ) : (
+            <ChatMessages
+              selectedUser={selectedUser}
+              messages={messages}
+              loggedInUser={loggedInUser}
+            />
+          )}
 
-          <Separator className="bg-white/10 my-2" /> {/* ✅ shadcn Separator */}
-
-          {/* Message input */}
+          {/* Input */}
           <MessageInput
             selectedUser={selectedUser}
             message={message}
             setMessage={handleTyping}
             handleMessageSend={handleMessageSend}
           />
-        </div>
+        </main>
       </div>
     </TooltipProvider>
   );
 };
 
 export default ChatApp;
-
-/*
- * ─── HOW TO USE SHADCN COMPONENTS IN CHILD COMPONENTS ───────────────────────
- *
- * ChatHeader.tsx – replace hamburger <button> with:
- *   <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
- *     <Menu className="h-5 w-5" />
- *   </Button>
- *
- * ChatSidebar.tsx – wrap logout button:
- *   <Button variant="ghost" className="w-full justify-start" onClick={handleLogout}>
- *     Logout
- *   </Button>
- *
- *   Online indicator with Badge:
- *   <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">
- *     Online
- *   </Badge>
- *
- *   User avatars with Avatar:
- *   <Avatar>
- *     <AvatarImage src={user.profilePic} alt={user.name} />
- *     <AvatarFallback>{user.name[0]}</AvatarFallback>
- *   </Avatar>
- *
- * MessageInput.tsx – replace send button:
- *   <Button type="submit" size="icon" variant="default">
- *     <Send className="h-4 w-4" />
- *   </Button>
- *
- *   Wrap icon buttons with Tooltip:
- *   <Tooltip>
- *     <TooltipTrigger asChild>
- *       <Button variant="ghost" size="icon"><Paperclip /></Button>
- *     </TooltipTrigger>
- *     <TooltipContent>Attach image</TooltipContent>
- *   </Tooltip>
- *
- * ─── INSTALLATION (run once) ─────────────────────────────────────────────────
- *   npx shadcn@latest add button avatar badge scroll-area separator skeleton sheet tooltip sonner
- *
- * ─── layout.tsx / _app.tsx – add Sonner Toaster once at the root ─────────────
- *   import { Toaster } from "sonner";
- *   // inside <body> or root layout:
- *   <Toaster position="top-right" richColors closeButton theme="dark" />
- */

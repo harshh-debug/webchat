@@ -4,6 +4,7 @@ import { chatModel } from "../models/chatModel.js";
 import { messageModel } from "../models/messageModel.js";
 import axios from "axios";
 import cloudinary from "../config/cloudinary.js";
+import { getRecieverSocketId, io } from "../config/socket.js";
 
 const uploadImageBuffer = async (buffer: Buffer) => {
 	return new Promise<{ secureUrl: string; publicId: string }>(
@@ -172,7 +173,16 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
 			});
 		}
 
-		//@todo: socket setup
+		// socket setup
+		const receiverSocketId = getRecieverSocketId(otherUserId.toString());
+		let isReceiverInChatRoom = false;
+
+		if (receiverSocketId) {
+			const receiverSocket = io.sockets.sockets.get(receiverSocketId);
+			if (receiverSocket && receiverSocket.rooms.has(chatId)) {
+				isReceiverInChatRoom = true;
+			}
+		}
 
 		let messageData: any = {
 			chatId: chatId,
@@ -212,8 +222,25 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
 			},
 		);
 
-		//@todo: emit to socket
+		//emit to socket
+		io.to(chatId).emit("newMessage", savedMessage);
 
+		if (receiverSocketId) {
+			io.to(receiverSocketId).emit("newMessage", savedMessage);
+		}
+
+		const senderSocketId = getRecieverSocketId(senderId.toString());
+		if (senderSocketId) {
+			io.to(senderSocketId).emit("newMessage", savedMessage);
+		}
+
+		if (isReceiverInChatRoom && senderSocketId) {
+			io.to(senderSocketId).emit("messagesSeen", {
+				chatId: chatId,
+				seenBy: otherUserId,
+				messageIds: [savedMessage._id],
+			});
+		}
 		return res.status(201).json({
 			message: savedMessage,
 			sender: senderId,
