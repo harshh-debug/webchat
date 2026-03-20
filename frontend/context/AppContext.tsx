@@ -10,6 +10,7 @@ import {
 import Cookies from "js-cookie";
 import axios from "axios";
 import { toast } from "sonner";
+import { signOut } from "next-auth/react";
 export const user_service = "http://localhost:5000";
 export const chat_service = "http://localhost:5002";
 
@@ -37,20 +38,18 @@ export interface Chats {
 	chat: Chat;
 }
 
-
 interface AppContextType {
 	user: User | null;
 	loading: boolean;
 	isAuth: boolean;
 	setUser: React.Dispatch<React.SetStateAction<User | null>>;
 	setIsAuth: React.Dispatch<React.SetStateAction<boolean>>;
-	logoutUser:()=>Promise<void>;
-	fetchUsers:()=>Promise<void>;
-	fetchChats:()=>Promise<void>;
-	chats: Chats[] | null   //was chats in video
-	users: User[] | null
-	setChats:React.Dispatch<React.SetStateAction<Chats[]|null>>
-
+	logoutUser: () => Promise<void>;
+	fetchUsers: () => Promise<void>;
+	fetchChats: () => Promise<void>;
+	chats: Chats[] | null; //was chats in video
+	users: User[] | null;
+	setChats: React.Dispatch<React.SetStateAction<Chats[] | null>>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -82,10 +81,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 	}
 
 	async function logoutUser() {
+		const token = Cookies.get("token"); // OTP case
+
+		try {
+			await axios.post("/api/logout", null, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+		} catch (e) {}
+
 		Cookies.remove("token");
+
+		await signOut({ redirect: false });
+
 		setUser(null);
 		setIsAuth(false);
-		toast.success("User logged out");
 	}
 	const [chats, setChats] = useState<Chats[] | null>(null);
 	async function fetchChats() {
@@ -101,29 +112,46 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 			console.log(error);
 		}
 	}
-	const [users, setUsers] = useState<User[] | null>(null)
+	const [users, setUsers] = useState<User[] | null>(null);
 
-	async function fetchUsers(){
+	async function fetchUsers() {
 		try {
-			const token = Cookies.get("token")
-			const {data}= await axios.get<User[]>(`${user_service}/api/v1/user/all`,{
-				headers:{
-					Authorization:`Bearer ${token}`
-				}
-			})
-			setUsers(data)
+			const token = Cookies.get("token");
+			const { data } = await axios.get<User[]>(
+				`${user_service}/api/v1/user/all`,
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				},
+			);
+			setUsers(data);
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 		}
 	}
 
 	useEffect(() => {
 		fetchUser();
-		fetchChats()
-		fetchUsers()
+		fetchChats();
+		fetchUsers();
 	}, []);
 	return (
-		<AppContext.Provider value={{ user, setUser, isAuth, setIsAuth, loading,logoutUser, fetchChats,fetchUsers,users,setChats,chats }}>
+		<AppContext.Provider
+			value={{
+				user,
+				setUser,
+				isAuth,
+				setIsAuth,
+				loading,
+				logoutUser,
+				fetchChats,
+				fetchUsers,
+				users,
+				setChats,
+				chats,
+			}}
+		>
 			{children}
 		</AppContext.Provider>
 	);

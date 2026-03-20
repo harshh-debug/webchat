@@ -5,7 +5,7 @@ import { userModel } from "../model/User.js";
 import { generateToken } from "../config/generateToken.js";
 import type { AuthenticatedRequest } from "../middleware/authMiddleware.js";
 import { OAuth2Client } from "google-auth-library";
-
+import jwt, { type JwtPayload } from "jsonwebtoken";
 export const loginUser = async (req: Request, res: Response) => {
 	try {
 		const { email } = req.body;
@@ -47,30 +47,7 @@ export const loginUser = async (req: Request, res: Response) => {
 	}
 };
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-// export const loginOauthUser = async (req: Request, res: Response) => {
-// 	try {
-// 		const { name, email, provider } = req.body;
-// 		let user = await userModel.findOne({ email });
-// 		if (!user) {
-// 			user = await userModel.create({
-// 				name,
-// 				email,
-// 				provider,
-// 			});
-// 		}
-// 		const token = generateToken(user);
-// 		return res.status(200).json({
-// 			message: "User verified",
-// 			user,
-// 			token,
-// 		});
-// 	} catch (error:any) {
-// 		console.log("Error in loginOauthUser", error);
-// 		return res.status(500).json({
-// 			message: error.message,
-// 		});
-// 	}
-// };
+
 export const loginOauthUser = async (req: Request, res: Response) => {
 	try {
 		const { idToken } = req.body;
@@ -232,6 +209,39 @@ export const getAUser = async (req: AuthenticatedRequest, res: Response) => {
 		console.log("Error in getA-user", error);
 		return res.status(500).json({
 			message: error.message,
+		});
+	}
+};
+export const logoutUser = async (req: Request, res: Response) => {
+	try {
+		const authHeader = req.headers.authorization;
+		if (!authHeader || !authHeader.startsWith("Bearer ")) {
+			return res.status(400).json({ message: "No token provided" });
+		}
+		const token = authHeader.split(" ")[1] as string;
+		const decodedValue = jwt.verify(
+			token,
+			process.env.JWT_SECRET as string,
+		) as JwtPayload;
+
+		if (!decodedValue || !decodedValue.user) {
+			return res.status(401).json({
+				message: "Invalid token",
+			});
+		}
+		const ttl = decodedValue.exp! - Math.floor(Date.now() / 1000);
+		if (ttl > 0) {
+			await redisClient.set(`BLACKLIST:${token}`, "true", {
+				EX: ttl,
+			});
+		}
+
+		return res.status(200).json({
+			message: "Logged out successfully",
+		});
+	} catch (error) {
+		return res.status(500).json({
+			message: "Logout failed",
 		});
 	}
 };
