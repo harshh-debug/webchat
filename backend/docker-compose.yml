@@ -1,0 +1,105 @@
+version: "3.9"
+
+services:
+
+  # ── RabbitMQ ────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"       # AMQP protocol
+      - "15672:15672"     # Management UI → http://localhost:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq   # persist queues/messages across restarts
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s   # give RabbitMQ time to boot before health checks begin
+    networks:
+      - backend
+
+  # ── User Service ─────────────────────────────────────────────
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./user-service/.env             # MONGO_URL, REDIS_URL, JWT_SECRET, PORT, etc.
+    environment:
+      NODE_ENV: production
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy      # wait for RabbitMQ to be ready before starting
+    networks:
+      - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Mail Service ─────────────────────────────────────────────
+  mail-service:
+    build:
+      context: ./mail-service
+      dockerfile: Dockerfile
+    container_name: mail-service
+    restart: unless-stopped
+    # No ports — this is a pure RabbitMQ consumer, not an HTTP server
+    env_file:
+      - ./mail-service/.env             # SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, etc.
+    environment:
+      NODE_ENV: production
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Chat Service ─────────────────────────────────────────────
+  chat-service:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile
+    container_name: chat-service
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    env_file:
+      - ./chat-service/.env             # MONGO_URL, JWT_SECRET, PORT, etc.
+    environment:
+      NODE_ENV: production
+    networks:
+      - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ── Volumes ───────────────────────────────────────────────────
+volumes:
+  rabbitmq_data:
+    driver: local
+
+# ── Networks ──────────────────────────────────────────────────
+networks:
+  backend:
+    driver: bridge

@@ -1,0 +1,16 @@
+# Environment files — never commit these
+.env
+.env.*
+!.env.example
+
+# Service-level env files
+user-service/.env
+mail-service/.env
+chat-service/.env
+
+# Build output
+dist/
+node_modules/
+
+# Docker
+*.log
