@@ -284,22 +284,54 @@ export const getMessagesByChat = async (
 				message: "You are not a participant of this chat",
 			});
 		}
-		// const messageToMarkSeen = await messageModel.find({
-		// 	chatId: chatId,
-		// 	sender: { $ne: userId },
-		// 	seen: false,
-		// });
-		await messageModel.updateMany(
+		const unreadMessages = await messageModel.find(
 			{
 				chatId: chatId,
 				sender: { $ne: userId },
 				seen: false,
 			},
-			{
-				seen: true,
-				seenAt: new Date(),
-			},
+			{ _id: 1, sender: 1 },
 		);
+
+		const unreadMessageIds = unreadMessages.map((msg) => msg._id.toString());
+
+		let modifiedCount = 0;
+		if (unreadMessageIds.length > 0) {
+			const updateResult = await messageModel.updateMany(
+				{
+					_id: { $in: unreadMessageIds },
+					seen: false,
+				},
+				{
+					seen: true,
+					seenAt: new Date(),
+				},
+			);
+
+			modifiedCount = updateResult.modifiedCount ?? 0;
+		}
+
+		// Notify original sender(s) even when they are not in the same chat room.
+		if (modifiedCount > 0) {
+			const senderIds = Array.from(
+				new Set(unreadMessages.map((msg) => msg.sender.toString())),
+			);
+
+			senderIds.forEach((senderId) => {
+				const senderSocketId = getRecieverSocketId(senderId);
+				if (!senderSocketId) return;
+
+				const payload = {
+					chatId,
+					seenBy: userId,
+					messageIds: unreadMessageIds,
+				};
+
+				io.to(senderSocketId).emit("messagesRead", payload);
+				// Keep legacy listener behavior intact.
+				io.to(senderSocketId).emit("messagesSeen", payload);
+			});
+		}
 		const messages = await messageModel.find({ chatId }).sort({
 			createdAt: 1,
 		});

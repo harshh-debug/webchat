@@ -1,34 +1,28 @@
-# ── Stage 1: Dependencies ─────────────────────────────────────
-FROM node:24-alpine AS deps
+FROM node:24-alpine
+
 WORKDIR /app
 
+# Install dependencies
 COPY package*.json ./
 RUN npm ci
 
-# ── Stage 2: Build ────────────────────────────────────────────
-FROM node:24-alpine AS builder
-WORKDIR /app
+# Copy source code
+COPY . .
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY tsconfig.json ./
-COPY src ./src
-
+# Build TypeScript
 RUN npm run build
 
-# ── Stage 3: Production ───────────────────────────────────────
-FROM node:24-alpine AS runner
-WORKDIR /app
-
+# Set production mode
 ENV NODE_ENV=production
 
+# Remove dev dependencies (optional but good)
+# RUN npm prune --omit=dev
+
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
-
-COPY --from=builder /app/dist ./dist
-
 USER appuser
 
-# Mail service is a consumer — no inbound port needed
+# Expose port (change per service)
+EXPOSE 5001
+
+# Run app
 CMD ["node", "dist/index.js"]

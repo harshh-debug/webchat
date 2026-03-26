@@ -1,46 +1,45 @@
-version: "3.9"
-
 services:
-
   # ── RabbitMQ ────────────────────────────────────────────────
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: rabbitmq
     restart: unless-stopped
     ports:
-      - "5672:5672"       # AMQP protocol
-      - "15672:15672"     # Management UI → http://localhost:15672
+      - "5672:5672" # AMQP protocol
+      - "15672:15672" # Management UI → http://localhost:15672
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq   # persist queues/messages across restarts
+      - rabbitmq_data:/var/lib/rabbitmq # persist queues/messages across restarts
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s   # give RabbitMQ time to boot before health checks begin
+      start_period: 20s # give RabbitMQ time to boot before health checks begin
     networks:
       - backend
 
   # ── User Service ─────────────────────────────────────────────
   user-service:
     build:
-      context: ./user-service
+      context: ./user
       dockerfile: Dockerfile
     container_name: user-service
     restart: unless-stopped
     ports:
-      - "5001:5001"
+      - "5000:5000"
     env_file:
-      - ./user-service/.env             # MONGO_URL, REDIS_URL, JWT_SECRET, PORT, etc.
+      - ./user/.env # MONGO_URL, REDIS_URL, JWT_SECRET, PORT, etc.
     environment:
       NODE_ENV: production
-      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      RabbitMQ_HOSTNAME: rabbitmq
+      RabbitMQ_USERNAME: ${RABBITMQ_USER}
+      RabbitMQ_PASSWORD: ${RABBITMQ_PASS}
     depends_on:
       rabbitmq:
-        condition: service_healthy      # wait for RabbitMQ to be ready before starting
+        condition: service_healthy # wait for RabbitMQ to be ready before starting
     networks:
       - backend
     logging:
@@ -52,16 +51,19 @@ services:
   # ── Mail Service ─────────────────────────────────────────────
   mail-service:
     build:
-      context: ./mail-service
+      context: ./mail
       dockerfile: Dockerfile
     container_name: mail-service
     restart: unless-stopped
-    # No ports — this is a pure RabbitMQ consumer, not an HTTP server
+    ports:
+      - "5001:5001"
     env_file:
-      - ./mail-service/.env             # SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, etc.
+      - ./mail/.env
     environment:
       NODE_ENV: production
-      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      RabbitMQ_HOSTNAME: rabbitmq
+      RabbitMQ_USERNAME: ${RABBITMQ_USER}
+      RabbitMQ_PASSWORD: ${RABBITMQ_PASS}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -76,16 +78,20 @@ services:
   # ── Chat Service ─────────────────────────────────────────────
   chat-service:
     build:
-      context: ./chat-service
+      context: ./chat
       dockerfile: Dockerfile
     container_name: chat-service
     restart: unless-stopped
     ports:
       - "5002:5002"
     env_file:
-      - ./chat-service/.env             # MONGO_URL, JWT_SECRET, PORT, etc.
+      - ./chat/.env
     environment:
       NODE_ENV: production
+      USER_SERVICE: http://user-service:5000
+    depends_on:
+      user-service:
+        condition: service_started
     networks:
       - backend
     logging:
