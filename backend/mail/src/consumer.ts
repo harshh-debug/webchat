@@ -18,27 +18,27 @@ export const startSendOtpConsumer = async () => {
 		await channel.assertQueue(queueName, { durable: true });
 		channel.prefetch(1);
 		console.log("Consumer Mail service started, listening for otp emails");
-		const transporter = nodemailer.createTransport({
-			host: "smtp.gmail.com",
-			port: 465,
-			auth: {
-				user: process.env.MAIL_USER,
-				pass: process.env.PASSWORD,
-			},
-		});
+		// const transporter = nodemailer.createTransport({
+		// 	host: "smtp.gmail.com",
+		// 	port: 465,
+		// 	auth: {
+		// 		user: process.env.MAIL_USER,
+		// 		pass: process.env.PASSWORD,
+		// 	},
+		// });
 		channel.consume(queueName, async (msg) => {
 			if (msg) {
 				try {
 					const { to, subject, body } = JSON.parse(msg.content.toString());
 
-					// const transporter = nodemailer.createTransport({
-					//     host:"smtp.gmail.com",
-					//     port:465,
-					//     auth:{
-					//         user:process.env.MAIL_USER,
-					//         pass:process.env.PASSWORD
-					//     }
-					// })
+					const transporter = nodemailer.createTransport({
+					    host:"smtp.gmail.com",
+					    port:465,
+					    auth:{
+					        user:process.env.MAIL_USER,
+					        pass:process.env.PASSWORD
+					    }
+					})
 
 					await transporter.sendMail({
 						from: "WebChat",
