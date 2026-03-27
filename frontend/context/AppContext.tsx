@@ -11,8 +11,8 @@ import Cookies from "js-cookie";
 import axios from "axios";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
-export const user_service = "http://localhost:5000";
-export const chat_service = "http://localhost:5002";
+export const user_service = process.env.USER_SERVICE;
+export const chat_service = process.env.CHAT_SERVICE;
 
 export interface User {
 	_id: string;
@@ -47,7 +47,7 @@ interface AppContextType {
 	logoutUser: () => Promise<void>;
 	fetchUsers: () => Promise<void>;
 	fetchChats: () => Promise<void>;
-	chats: Chats[] | null; //was chats in video
+	chats: Chats[] | null; 
 	users: User[] | null;
 	setChats: React.Dispatch<React.SetStateAction<Chats[] | null>>;
 }
