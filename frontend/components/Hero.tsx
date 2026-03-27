@@ -193,7 +193,7 @@ export default function Hero() {
 
           <div className="flex items-center gap-3 pt-2">
             <motion.a
-              href="#get-started"
+               href="/login"
               id="get-started"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
