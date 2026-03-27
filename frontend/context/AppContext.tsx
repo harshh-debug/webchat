@@ -11,8 +11,8 @@ import Cookies from "js-cookie";
 import axios from "axios";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
-export const user_service = process.env.USER_SERVICE;
-export const chat_service = process.env.CHAT_SERVICE;
+export const user_service = process.env.NEXT_PUBLIC_USER_SERVICE;
+export const chat_service = process.env.NEXT_PUBLIC_CHAT_SERVICE;
 
 export interface User {
 	_id: string;
