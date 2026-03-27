@@ -1,17 +1,23 @@
 "use client";
 
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import {
+	createContext,
+	ReactNode,
+	useContext,
+	useEffect,
+	useState,
+} from "react";
 import { io, Socket } from "socket.io-client";
-import { chat_service, useAppData } from "./AppContext";
+import { useAppData } from "./AppContext";
 
 interface SocketContextType {
 	socket: Socket | null;
-    onlineUsers:string[]
+	onlineUsers: string[];
 }
 
 const SocketContext = createContext<SocketContextType>({
 	socket: null,
-    onlineUsers:[]
+	onlineUsers: [],
 });
 
 interface ProviderProps {
@@ -20,28 +26,30 @@ interface ProviderProps {
 
 export const SocketProvider = ({ children }: ProviderProps) => {
 	const [socket, setSocket] = useState<Socket | null>(null);
-	const { user } = useAppData();  //verify if it works for Oauth
-    const [onlineUsers, setOnlineUsers] = useState<string[]>([])
+	const { user } = useAppData(); //verify if it works for Oauth
+	const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 	useEffect(() => {
 		if (!user?._id) return;
-		const newSocket = io(chat_service,{
-            query:{
-                userId:user._id
-            }
-        });
+		const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
+			path: "/socket.io/",
+			query: {
+				userId: user._id,
+			},
+			transports: ["websocket", "polling"],
+		});
 		setSocket(newSocket);
-        newSocket.on("getOnlineUser",(users:string[])=>{
-            setOnlineUsers(users)
-        })
+		newSocket.on("getOnlineUser", (users: string[]) => {
+			setOnlineUsers(users);
+		});
 		return () => {
 			newSocket.disconnect();
 		};
 	}, [user?._id]);
 	return (
-		<SocketContext.Provider value={{ socket,onlineUsers }}>
+		<SocketContext.Provider value={{ socket, onlineUsers }}>
 			{children}
 		</SocketContext.Provider>
 	);
 };
 
-export const SocketData=()=>useContext(SocketContext)
+export const SocketData = () => useContext(SocketContext);
