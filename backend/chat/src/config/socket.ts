@@ -5,10 +5,13 @@ import express from "express";
 const app = express();
 
 const server = http.createServer(app);
-
+const frontendUrl=process.env.FRONTEND_URL;
+if(!frontendUrl){
+	throw new Error("Frontend url is missing");
+}
 const io = new Server(server, {
 	cors: {
-		origin: "*",
+		origin: frontendUrl,
 		methods: ["GET", "POST"],
 	},
 	pingTimeout: 60000,

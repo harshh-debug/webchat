@@ -28,9 +28,14 @@ export const SocketProvider = ({ children }: ProviderProps) => {
 	const [socket, setSocket] = useState<Socket | null>(null);
 	const { user } = useAppData(); //verify if it works for Oauth
 	const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+	const socketUrl=process.env.NEXT_PUBLIC_SOCKET_URL
+	if(!socketUrl){
+		console.log(`socket url is missing`)
+		return 
+	}
 	useEffect(() => {
 		if (!user?._id) return;
-		const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
+		const newSocket = io(socketUrl, {
 			path: "/socket.io/",
 			query: {
 				userId: user._id,
