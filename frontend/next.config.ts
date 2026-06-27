@@ -13,7 +13,7 @@ const nextConfig = {
               "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' blob: data: https:",
-              "connect-src 'self' https://webchat-api.duckdns.org wss://webchat-api.duckdns.org",
+              "connect-src 'self' https://webchat-api-v1.duckdns.org wss://webchat-api-v1.duckdns.org",
               "font-src 'self'",
               "frame-src 'self'",
             ].join("; "),
