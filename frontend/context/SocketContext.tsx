@@ -40,7 +40,7 @@ export const SocketProvider = ({ children }: ProviderProps) => {
 			query: {
 				userId: user._id,
 			},
-			transports: ["websocket", "polling"],
+			transports: ["polling", "websocket"]
 		});
 		setSocket(newSocket);
 		newSocket.on("getOnlineUser", (users: string[]) => {
