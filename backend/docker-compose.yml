@@ -4,9 +4,6 @@ services:
     image: rabbitmq:3.13-management-alpine
     container_name: rabbitmq
     restart: unless-stopped
-    ports:
-      - "5672:5672" # AMQP protocol
-      - "15672:15672" # Management UI → http://localhost:15672
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
@@ -29,7 +26,7 @@ services:
     container_name: user-service
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     env_file:
       - ./user/.env # MONGO_URL, REDIS_URL, JWT_SECRET, PORT, etc.
     environment:
@@ -55,8 +52,6 @@ services:
       dockerfile: Dockerfile
     container_name: mail-service
     restart: unless-stopped
-    ports:
-      - "5001:5001"
     env_file:
       - ./mail/.env
     environment:
@@ -83,7 +78,7 @@ services:
     container_name: chat-service
     restart: unless-stopped
     ports:
-      - "5002:5002"
+      - "127.0.0.1:5002:5002"
     env_file:
       - ./chat/.env
     environment:
