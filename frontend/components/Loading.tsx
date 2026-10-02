@@ -1,6 +1,10 @@
 const Loading = () => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-[#0a0a0a]">
+    <div
+      role="status"
+      aria-label="Loading WebChat"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-[#0a0a0a]"
+    >
       <div className="flex flex-col items-center gap-5">
         {/* Logo */}
         <div className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-white flex items-center justify-center">

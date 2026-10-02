@@ -19,6 +19,8 @@ interface ChatSidebarProps {
   showAllUsers: boolean;
   setShowAllUsers: (show: boolean | ((prev: boolean) => boolean)) => void;
   users: User[] | null;
+  chatsLoading: boolean;
+  usersLoading: boolean;
   loggedInUser: User | null;
   chats: any[] | null;
   selectedUser: string | null;
@@ -41,7 +43,7 @@ const getAvatarColor = (id: string) =>
 
 const ChatSidebar = ({
   sidebarOpen, setSidebarOpen, showAllUsers, setShowAllUsers,
-  users, loggedInUser, chats, selectedUser, setSelectedUser,
+  users, chatsLoading, usersLoading, loggedInUser, chats, selectedUser, setSelectedUser,
   handleLogout, createChat, onlineUsers,
 }: ChatSidebarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -117,45 +119,51 @@ const ChatSidebar = ({
       {/* List */}
       <ScrollArea className="flex-1 px-2">
         {showAllUsers ? (
-          <div className="py-1 space-y-0.5">
-            {users
-              ?.filter(
-                (u) =>
-                  u._id !== loggedInUser?._id &&
-                  u.name.toLowerCase().includes(searchQuery.toLowerCase()),
-              )
-              .map((u) => {
-                const isOnline = onlineUsers.includes(u._id);
-                return (
-                  <button
-                    key={u._id}
-                    onClick={() => createChat(u)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left",
-                      "hover:bg-zinc-100 dark:hover:bg-white/[0.05]",
-                      "transition-colors duration-150",
-                    )}
-                  >
-                    <div className="relative shrink-0">
-                      <Avatar className="w-9 h-9">
-                        <AvatarFallback className={cn(getAvatarColor(u._id), "text-white text-[12px] font-semibold")}>
-                          {getInitials(u.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      {isOnline && (
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#111214]" />
+          usersLoading ? (
+            <SidebarListSkeleton label="Loading people" />
+          ) : (
+            <div className="py-1 space-y-0.5">
+              {users
+                ?.filter(
+                  (u) =>
+                    u._id !== loggedInUser?._id &&
+                    u.name.toLowerCase().includes(searchQuery.toLowerCase()),
+                )
+                .map((u) => {
+                  const isOnline = onlineUsers.includes(u._id);
+                  return (
+                    <button
+                      key={u._id}
+                      onClick={() => createChat(u)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left",
+                        "hover:bg-zinc-100 dark:hover:bg-white/[0.05]",
+                        "transition-colors duration-150",
                       )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-zinc-800 dark:text-zinc-100 truncate">{u.name}</p>
-                      <p className={cn("text-[11px] mt-0.5", isOnline ? "text-emerald-500" : "text-zinc-400")}>
-                        {isOnline ? "Active now" : "Offline"}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-          </div>
+                    >
+                      <div className="relative shrink-0">
+                        <Avatar className="w-9 h-9">
+                          <AvatarFallback className={cn(getAvatarColor(u._id), "text-white text-[12px] font-semibold")}>
+                            {getInitials(u.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {isOnline && (
+                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#111214]" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium text-zinc-800 dark:text-zinc-100 truncate">{u.name}</p>
+                        <p className={cn("text-[11px] mt-0.5", isOnline ? "text-emerald-500" : "text-zinc-400")}>
+                          {isOnline ? "Active now" : "Offline"}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+            </div>
+          )
+        ) : chatsLoading ? (
+          <SidebarListSkeleton label="Loading conversations" />
         ) : chats && chats.length > 0 ? (
           <div className="py-1 space-y-0.5">
             {chats.map((chat) => {
@@ -291,5 +299,19 @@ const ChatSidebar = ({
     </aside>
   );
 };
+
+const SidebarListSkeleton = ({ label }: { label: string }) => (
+  <div className="space-y-1 py-1" role="status" aria-label={label} aria-busy="true">
+    {Array.from({ length: 6 }, (_, index) => (
+      <div key={index} className="flex items-center gap-3 px-3 py-2.5">
+        <div className="h-10 w-10 shrink-0 animate-pulse motion-reduce:animate-none rounded-full bg-zinc-200 dark:bg-white/[0.07]" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="h-3 w-2/5 animate-pulse motion-reduce:animate-none rounded bg-zinc-200 dark:bg-white/[0.07]" />
+          <div className="h-2.5 w-3/4 animate-pulse motion-reduce:animate-none rounded bg-zinc-100 dark:bg-white/[0.05]" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 export default ChatSidebar;

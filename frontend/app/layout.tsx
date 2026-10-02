@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AppProvider } from "@/context/AppContext";
-import { Toaster } from "@/components/ui/sonner";
-import OAuthTokenSync from "@/components/OAuthTokenSync";
-import { SessionProvider } from "next-auth/react";
 import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
@@ -19,13 +15,6 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body>
-				{/* <SessionProvider>
-					<AppProvider>
-						<OAuthTokenSync />
-						{children}
-					</AppProvider>
-					<Toaster position="top-center" richColors />
-				</SessionProvider> */}
 				<Providers>{children}</Providers>
 			</body>
 		</html>

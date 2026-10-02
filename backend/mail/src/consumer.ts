@@ -37,7 +37,10 @@ export const startSendOtpConsumer = async () => {
             });
 
             await transporter.sendMail({
-              from: "WebChat",
+              from: {
+                name: "WebChat",
+                address: process.env.MAIL_USER!,
+              },
               to,
               subject,
               text: body,

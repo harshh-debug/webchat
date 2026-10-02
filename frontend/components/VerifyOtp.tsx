@@ -88,9 +88,8 @@ const VerifyOtp = () => {
       setOtp(["", "", "", "", "", ""]);
       inputRef.current[0]?.focus();
       setUser(data.user);
+      await Promise.all([fetchChats(), fetchUsers()]);
       setIsAuth(true);
-      fetchChats();
-      fetchUsers();
     } catch (error: any) {
       setError(
         error?.response?.data?.message || error?.message || "Unexpected error occurred"

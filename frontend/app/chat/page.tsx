@@ -52,7 +52,7 @@ export interface SendMessageApiResponse {
 const ChatApp = () => {
   const {
     loading, isAuth, logoutUser, chats, user: loggedInUser,
-    users, fetchChats, setChats,
+    users, chatsLoading, usersLoading, fetchChats, setChats,
   } = useAppData();
 
   const { onlineUsers, socket } = SocketData();
@@ -69,7 +69,7 @@ const ChatApp = () => {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuth && !loading) router.push("/login");
+    if (!isAuth && !loading) router.replace("/login");
   }, [isAuth, router, loading]);
 
   const handleLogout = () => logoutUser();
@@ -85,7 +85,6 @@ const ChatApp = () => {
       setUser(data.user);
       await fetchChats();
     } catch (error) {
-      console.log(error);
       toast.error("Failed to load messages");
     }
   }
@@ -138,7 +137,6 @@ const ChatApp = () => {
       setShowAllUser(false);
       await fetchChats();
     } catch (error) {
-      console.log("Error in creating new chat: " + error);
       toast.error("Failed to start chat");
     }
   }
@@ -250,7 +248,7 @@ const ChatApp = () => {
     return () => { if (typingTimeOut) clearTimeout(typingTimeOut); };
   }, [typingTimeOut]);
 
-  if (loading) return <Loading />;
+  if (loading || !isAuth) return <Loading />;
 
   return (
     <TooltipProvider>
@@ -272,6 +270,8 @@ const ChatApp = () => {
               showAllUsers={showAllUser}
               setShowAllUsers={setShowAllUser}
               users={users}
+              chatsLoading={chatsLoading}
+              usersLoading={usersLoading}
               loggedInUser={loggedInUser}
               chats={chats}
               selectedUser={selectedUser}
@@ -291,6 +291,8 @@ const ChatApp = () => {
             showAllUsers={showAllUser}
             setShowAllUsers={setShowAllUser}
             users={users}
+            chatsLoading={chatsLoading}
+            usersLoading={usersLoading}
             loggedInUser={loggedInUser}
             chats={chats}
             selectedUser={selectedUser}

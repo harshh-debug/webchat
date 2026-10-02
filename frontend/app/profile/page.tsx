@@ -69,10 +69,10 @@ const ProfilePage = () => {
   };
 
   useEffect(() => {
-    if (!isAuth && !loading) router.push("/login");
+    if (!isAuth && !loading) router.replace("/login");
   }, [isAuth, router, loading]);
 
-  if (loading) return <Loading />;
+  if (loading || !isAuth) return <Loading />;
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-[#0d0f13] flex flex-col">
