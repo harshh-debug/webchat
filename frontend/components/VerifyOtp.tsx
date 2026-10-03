@@ -118,7 +118,7 @@ const VerifyOtp = () => {
     }
   };
 
-  if (userLoading) return <Loading />;
+  if (userLoading || isAuth) return <Loading />;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-[#0a0a0a]">

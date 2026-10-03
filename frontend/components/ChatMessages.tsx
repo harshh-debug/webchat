@@ -1,5 +1,5 @@
 "use client";
-import { Message } from "@/app/chat/page";
+import type { Message } from "@/app/chat/types";
 import { User } from "@/context/AppContext";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import moment from "moment";
