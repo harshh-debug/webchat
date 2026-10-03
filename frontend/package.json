@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@types/axios": "^0.9.36",
     "@types/js-cookie": "^3.0.6",
     "@types/moment": "^2.11.29",
     "axios": "^1.13.5",
